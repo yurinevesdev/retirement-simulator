@@ -150,25 +150,25 @@ app.use((req, res, next) => {
     next();
 });
 
-app.post('/calculate', validateRequest(InputValidator.validateCalculateRequest), (req, res) => {
+app.post('/api/calculate', validateRequest(InputValidator.validateCalculateRequest), (req, res) => {
     try {
         const result = CalculationService.calculateInvestmentScenarios(req.body);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Calculation failed' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-app.post('/withdrawal-scenarios', validateRequest(InputValidator.validateWithdrawalRequest), (req, res) => {
+app.post('/api/withdrawal-scenarios', validateRequest(InputValidator.validateWithdrawalRequest), (req, res) => {
     try {
         const result = CalculationService.calculateWithdrawalScenarios(req.body);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Withdrawal calculation failed' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'healthy',
         timestamp: new Date().toISOString(),

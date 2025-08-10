@@ -1,4 +1,3 @@
-// Cache de elementos DOM
 const DOM = {
     form: document.getElementById('calc-form'),
     loadingOverlay: document.getElementById('loadingOverlay'),
@@ -18,14 +17,12 @@ const DOM = {
     monthlyContribution: document.getElementById('monthlyContribution')
 };
 
-// Estado da aplicação
 const AppState = {
     chart: null,
     withdrawalChart: null,
     withdrawalData: null
 };
 
-// Constantes
 const COMPOSITION_DATA = {
     conservador: [
         { category: 'Renda Fixa', percentage: 90, color: '#3498db' },
@@ -48,7 +45,144 @@ const WITHDRAWAL_AMOUNTS = [2500, 5000, 7500, 10000, 12000, 15000];
 const MAX_AGE = 110;
 const CURRENCY_FORMAT = { style: 'currency', currency: 'BRL' };
 
-// Utilitários
+// Validadores para os dados do formulário
+const Validators = {
+    validateCalculateRequest: (body) => {
+        const { currentAge, desiredAge, monthlyContribution, initialAmount } = body;
+        const errors = [];
+
+        // Validação da idade atual
+        if (!Number.isInteger(currentAge) || currentAge < 18 || currentAge > 80) {
+            errors.push('Idade atual deve ser um número inteiro entre 18 e 80 anos');
+        }
+
+        // Validação da idade desejada
+        if (!Number.isInteger(desiredAge) || desiredAge <= currentAge || desiredAge > 100 || desiredAge < 50) {
+            errors.push('Idade de aposentadoria deve ser maior que a idade atual, no mínimo 50 anos e menor que 100 anos');
+        }
+
+        // Validação da contribuição mensal
+        if (!Number.isFinite(monthlyContribution) || monthlyContribution < 0) {
+            errors.push('Contribuição mensal deve ser um número positivo');
+        }
+
+        // Validação do valor inicial (opcional)
+        if (initialAmount !== undefined && (!Number.isFinite(initialAmount) || initialAmount < 0)) {
+            errors.push('Valor inicial deve ser um número positivo');
+        }
+
+        return { isValid: errors.length === 0, errors };
+    },
+
+    validateWithdrawalRequest: (body) => {
+        const { accumulatedValues, rates, retirementAge } = body;
+        const errors = [];
+
+        // Validação dos valores acumulados
+        if (!Array.isArray(accumulatedValues) || accumulatedValues.length !== 3) {
+            errors.push('AccumulatedValues deve ser um array com 3 elementos');
+        } else {
+            // Verifica se todos os valores são números positivos
+            accumulatedValues.forEach((value, index) => {
+                if (!Number.isFinite(value) || value < 0) {
+                    errors.push(`Valor acumulado ${index + 1} deve ser um número positivo`);
+                }
+            });
+        }
+
+        // Validação das taxas de retorno
+        if (!Array.isArray(rates) || rates.length !== 3) {
+            errors.push('Rates deve ser um array com 3 elementos');
+        } else {
+            // Verifica se todas as taxas são números válidos
+            rates.forEach((rate, index) => {
+                if (!Number.isFinite(rate) || rate < 0 || rate > 1) {
+                    errors.push(`Taxa ${index + 1} deve ser um número entre 0 e 1`);
+                }
+            });
+        }
+
+        // Validação da idade de aposentadoria
+        if (!Number.isInteger(retirementAge) || retirementAge < 50 || retirementAge > 100) {
+            errors.push('Idade de aposentadoria deve ser entre 50 e 100 anos');
+        }
+
+        return { isValid: errors.length === 0, errors };
+    },
+
+    // Validação em tempo real dos campos do formulário
+    validateFormFields: () => {
+        const currentAge = parseInt(DOM.currentAge.value);
+        const desiredAge = parseInt(DOM.desiredAge.value);
+        const monthlyContribution = parseFloat(DOM.monthlyContribution.value);
+        const initialAmount = parseFloat(DOM.initialAmount.value) || 0;
+
+        // Remove mensagens de erro anteriores
+        Validators.clearValidationErrors();
+
+        let isValid = true;
+
+        // Validação idade atual
+        if (isNaN(currentAge) || currentAge < 18 || currentAge > 80) {
+            Validators.showFieldError(DOM.currentAge, 'Idade deve estar entre 18 e 80 anos');
+            isValid = false;
+        }
+
+        // Validação idade desejada
+        if (isNaN(desiredAge) || desiredAge <= currentAge || desiredAge > 100) {
+            Validators.showFieldError(DOM.desiredAge, 'Idade deve ser maior que a atual e menor que 100');
+            isValid = false;
+        }
+
+        // Validação contribuição mensal
+        if (isNaN(monthlyContribution) || monthlyContribution < 0) {
+            Validators.showFieldError(DOM.monthlyContribution, 'Contribuição deve ser um número positivo');
+            isValid = false;
+        }
+
+        // Validação valor inicial
+        if (initialAmount < 0) {
+            Validators.showFieldError(DOM.initialAmount, 'Valor inicial deve ser positivo');
+            isValid = false;
+        }
+
+        return isValid;
+    },
+
+    showFieldError: (field, message) => {
+        field.classList.add('error');
+
+        // Remove erro anterior se existir
+        const existingError = field.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        // Adiciona nova mensagem de erro
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        field.parentNode.appendChild(errorDiv);
+    },
+
+    clearValidationErrors: () => {
+        // Remove classes de erro dos campos
+        document.querySelectorAll('.error').forEach(field => {
+            field.classList.remove('error');
+        });
+
+        // Remove mensagens de erro
+        document.querySelectorAll('.error-message').forEach(msg => {
+            msg.remove();
+        });
+    },
+
+    showValidationAlert: (errors) => {
+        const errorMessage = errors.join('\n');
+        alert(`Erro de validação:\n\n${errorMessage}`);
+    }
+};
+
 const Utils = {
     formatCurrency: (value) => value.toLocaleString('pt-BR', CURRENCY_FORMAT),
 
@@ -82,28 +216,54 @@ const Utils = {
     }
 };
 
-// API calls
 const API = {
     calculate: async (data) => {
-        const response = await fetch('/calculate', {
+        // Validação antes do envio
+        const validation = Validators.validateCalculateRequest(data);
+        if (!validation.isValid) {
+            Validators.showValidationAlert(validation.errors);
+            throw new Error('Dados inválidos');
+        }
+
+        const response = await fetch('/api/calculate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
+
+        if (!response.ok) {
+            console.log(response)
+            const errorData = await response.json();
+            throw new Error(errorData.details ? errorData.details.join(', ') : errorData.error || 'Erro desconhecido');
+        }
+
         return response.json();
     },
 
     getWithdrawalScenarios: async (data) => {
-        const response = await fetch('/withdrawal-scenarios', {
+        // Validação antes do envio
+        const validation = Validators.validateWithdrawalRequest(data);
+        if (!validation.isValid) {
+            Validators.showValidationAlert(validation.errors);
+            throw new Error('Dados inválidos para cenários de saque');
+        }
+
+        const response = await fetch('/api/withdrawal-scenarios', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
+
+        if (!response.ok) {
+            console.log(response)
+            const errorData = await response.json();
+            throw new Error(errorData.details ? errorData.details.join(', ') : errorData.error || 'Erro desconhecido');
+        }
+
         return response.json();
     }
 };
 
-// Gerenciadores de UI
 const UIManager = {
     showModal: () => {
         DOM.modal.style.display = 'block';
@@ -165,7 +325,6 @@ const UIManager = {
     }
 };
 
-// Gerenciador de gráficos
 const ChartManager = {
     destroy: (chartInstance) => {
         if (chartInstance) chartInstance.destroy();
@@ -299,12 +458,18 @@ const EventHandlers = {
     handleFormSubmit: async (e) => {
         e.preventDefault();
 
+        // Limpa validações anteriores
+        Validators.clearValidationErrors();
+
         const currentAge = parseInt(DOM.currentAge.value);
         const desiredAge = parseInt(DOM.desiredAge.value);
         const initialAmount = parseFloat(DOM.initialAmount.value) || 0;
         const monthlyContribution = parseFloat(DOM.monthlyContribution.value);
 
-        if (!Utils.validateAges(currentAge, desiredAge)) return;
+        // Validação frontend
+        if (!Validators.validateFormFields()) {
+            return;
+        }
 
         Utils.showLoading(true);
 
@@ -329,7 +494,9 @@ const EventHandlers = {
 
         } catch (error) {
             console.error('Erro:', error);
-            alert('Ocorreu um erro ao calcular. Por favor, tente novamente.');
+            if (error.message !== 'Dados inválidos' && error.message !== 'Dados inválidos para cenários de saque') {
+                alert('Ocorreu um erro ao calcular. Por favor, tente novamente.');
+            }
         } finally {
             Utils.showLoading(false);
         }
@@ -384,7 +551,28 @@ const App = {
             });
         });
 
+        // Validação em tempo real nos campos
+        [DOM.currentAge, DOM.desiredAge, DOM.monthlyContribution, DOM.initialAmount].forEach(field => {
+            field.addEventListener('blur', () => {
+                // Remove erro do campo atual se estiver válido
+                const currentErrors = field.parentNode.querySelector('.error-message');
+                if (currentErrors) {
+                    Validators.validateFormFields();
+                }
+            });
+
+            field.addEventListener('input', () => {
+                // Remove classe de erro enquanto o usuário digita
+                if (field.classList.contains('error')) {
+                    field.classList.remove('error');
+                }
+            });
+        });
+
+        // Valores padrão
         DOM.currentAge.value = 30;
+        // Atualizar os atributos min do HTML para aposentadoria
+        DOM.desiredAge.setAttribute('min', '50');
         DOM.desiredAge.value = 60;
         DOM.initialAmount.value = 5000;
         DOM.monthlyContribution.value = 1000;
