@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planejador de Aposentadoria Inteligente</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <i class="fas fa-spinner fa-spin fa-3x"></i>
+        <p>Calculando seus cenários...</p>
+    </div>
+
+    <!-- Modal para exibir composição -->
+    <div class="modal" id="compositionModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modal-title">Composição da Carteira</h3>
+            <ul id="composition-list"></ul>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-piggy-bank"></i> Planejador de Aposentadoria</h1>
+            <p>Simule diferentes cenários de investimento para planejar seu futuro com segurança</p>
+        </header>
+
+        <div class="content">
+            <div class="calculator-section">
+                <div class="section-title">
+                    <i class="fas fa-calculator"></i> Dados para Simulação
+                </div>
+                <div class="form-container">
+                    <form id="calc-form">
+                        <div class="form-group">
+                            <label for="currentAge"><i class="fas fa-user"></i> Idade Atual:</label>
+                            <input type="number" id="currentAge" required min="18" max="100" placeholder="Ex: 30">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="desiredAge"><i class="fas fa-bullseye"></i> Idade de Aposentadoria:</label>
+                            <input type="number" id="desiredAge" required min="19" max="100" placeholder="Ex: 60">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="initialAmount"><i class="fas fa-piggy-bank"></i> Valor Inicial (R$):</label>
+                            <input type="number" id="initialAmount" min="0" step="100" placeholder="Ex: 5000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="monthlyContribution"><i class="fas fa-wallet"></i> Aporte Mensal (R$):</label>
+                            <input type="number" id="monthlyContribution" required min="0" step="100"
+                                placeholder="Ex: 1000">
+                        </div>
+
+                        <button type="submit">
+                            <i class="fas fa-chart-line"></i> Simular Cenários
+                        </button>
+                    </form>
+
+                    <div class="info-box">
+                        <strong><i class="fas fa-lightbulb"></i> Dicas importantes:</strong>
+                        <ul>
+                            <li>Quanto antes você começar, menos precisará investir mensalmente</li>
+                            <li>Considere inflação de 3-4% ao ano em seus cálculos</li>
+                            <li>Diversifique seus investimentos para reduzir riscos</li>
+                            <li>O valor inicial representa o patrimônio que você já possui</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section">
+                <div class="cards-container" id="results">
+                    <div class="card conservador">
+                        <div class="card-header">
+                            <div>
+                                <i class="fas fa-shield-alt"></i> Conservador
+                            </div>
+                            <i class="fas fa-info-circle info-icon" data-card="conservador"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-title">Baixo risco, retorno moderado</div>
+                            <div class="card-value">R$ 0,00</div>
+                            <div>Retorno esperado: 6% ao ano</div>
+
+                            <div class="card-stats">
+                                <div class="stat">
+                                    <div class="stat-value">R$ 0,00</div>
+                                    <div class="stat-label">Total Aportado</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">R$ 0,00</div>
+                                    <div class="stat-label">Juros Acumulados</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card moderado">
+                        <div class="card-header">
+                            <div>
+                                <i class="fas fa-balance-scale"></i> Moderado
+                            </div>
+                            <i class="fas fa-info-circle info-icon" data-card="moderado"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-title">Risco e retorno equilibrados</div>
+                            <div class="card-value">R$ 0,00</div>
+                            <div>Retorno esperado: 8.5% ao ano</div>
+
+                            <div class="card-stats">
+                                <div class="stat">
+                                    <div class="stat-value">R$ 0,00</div>
+                                    <div class="stat-label">Total Aportado</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">R$ 0,00</div>
+                                    <div class="stat-label">Juros Acumulados</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card agressivo">
+                        <div class="card-header">
+                            <div>
+                                <i class="fas fa-chart-line"></i> Agressivo
+                            </div>
+                            <i class="fas fa-info-circle info-icon" data-card="agressivo"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-title">Alto risco, maior potencial</div>
+                            <div class="card-value">R$ 0,00</div>
+                            <div>Retorno esperado: 11% ao ano</div>
+
+                            <div class="card-stats">
+                                <div class="stat">
+                                    <div class="stat-value">R$ 0,00</div>
+                                    <div class="stat-label">Total Aportado</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">R$ 0,00</div>
+                                    <div class="stat-label">Juros Acumulados</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sistema de abas para gráficos -->
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="accumulation">Evolução do Patrimônio</div>
+                        <div class="tab" data-tab="withdrawal">Cenários de Saque</div>
+                    </div>
+
+                    <div id="accumulation-tab" class="tab-content active">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <i class="fas fa-chart-bar"></i> Evolução do patrimônio até a aposentadoria
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="comparisonChart"></canvas>
+                            </div>
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #3498db;"></div>
+                                    <span>Conservador</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #f39c12;"></div>
+                                    <span>Moderado</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #e74c3c;"></div>
+                                    <span>Agressivo</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #7f8c8d;"></div>
+                                    <span>Total Aportado</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="withdrawal-tab" class="tab-content">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <i class="fas fa-money-bill-wave"></i> Duração do patrimônio na aposentadoria
+                            </div>
+
+                            <div class="withdrawal-tabs" id="withdrawal-tabs"></div>
+
+                            <div class="withdrawal-content">
+                                <div class="withdrawal-chart-container">
+                                    <canvas id="withdrawalChart"></canvas>
+                                </div>
+
+                                <div class="withdrawal-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: #3498db;"></div>
+                                        <span>Conservador</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: #f39c12;"></div>
+                                        <span>Moderado</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: #e74c3c;"></div>
+                                        <span>Agressivo</span>
+                                    </div>
+                                </div>
+
+                                <div class="withdrawal-results">
+                                    <h4>Idade que o dinheiro acaba:</h4>
+                                    <div class="withdrawal-result-item">
+                                        <span class="portfolio-name">Conservador:</span>
+                                        <span class="portfolio-age conservador-age" id="conservador-age">-</span>
+                                    </div>
+                                    <div class="withdrawal-result-item">
+                                        <span class="portfolio-name">Moderado:</span>
+                                        <span class="portfolio-age moderado-age" id="moderado-age">-</span>
+                                    </div>
+                                    <div class="withdrawal-result-item">
+                                        <span class="portfolio-name">Agressivo:</span>
+                                        <span class="portfolio-age agressivo-age" id="agressivo-age">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2025 Planejador de Aposentadoria | Os resultados são estimativas e não garantem retornos futuros</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+
+</body>
+
+</html>
