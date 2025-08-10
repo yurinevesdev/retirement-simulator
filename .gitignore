@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Diretórios de dependências
+node_modules/
+jspm_packages/
+
+# Cache do npm
+.npm
+
+# Cache do Yarn
+.yarn-cache/
+.pnp.*
+.pnp.js
+
+# Arquivos de build
+dist/
+build/
+out/
+.next/
+.vercel/
+
+# Ambiente local
+.env
+.env.*.local
+
+# Cobertura de testes
+coverage/
+
+# Diretórios de sistema
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Arquivos temporários
+*.tmp
+*.temp
